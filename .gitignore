@@ -1,0 +1,9 @@
+logs/
+kompas_stats/
+
+allods_state_history.json
+kompas_statistik.txt
+allods_hpi_molodaya_gvardiya.xlsx
+
+__pycache__/
+*.py[cod]
