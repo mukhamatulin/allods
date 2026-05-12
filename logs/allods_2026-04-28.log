@@ -1,0 +1,34 @@
+Ошибка Яндекс Диска: 403 FORBIDDEN
+Ошибка Яндекс Диска: 403 FORBIDDEN
+Сохранено: C:\Users\Rais\PhpstormProjects\allods\allods_hpi_molodaya_gvardiya.xlsx
+Записей: 1115
+Персонажей: 313
+Yandex Disk URL: https://yadi.sk/d/rS9_gyJJZr_qHQ
+Сохранено: C:\Users\Rais\PhpstormProjects\allods\allods_hpi_molodaya_gvardiya.xlsx
+Записей: 1115
+Персонажей: 313
+Yandex Disk URL: https://yadi.sk/d/rS9_gyJJZr_qHQ
+Traceback (most recent call last):
+  File "C:\Users\Rais\PhpstormProjects\allods\src\allods_hpi_to_xlsx.py", line 2104, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Rais\PhpstormProjects\allods\src\allods_hpi_to_xlsx.py", line 2075, in main
+    workbook.save(output_path)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\openpyxl\workbook\workbook.py", line 386, in save
+    save_workbook(self, filename)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\openpyxl\writer\excel.py", line 291, in save_workbook
+    archive = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\zipfile\__init__.py", line 1453, in __init__
+    self.fp = io.open(file, filemode)
+              ~~~~~~~^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'allods_hpi_molodaya_gvardiya.xlsx'
+Сохранено: C:\Users\Rais\PhpstormProjects\allods\allods_hpi_molodaya_gvardiya.xlsx
+Записей: 1115
+Персонажей: 313
+Yandex Disk URL: https://yadi.sk/d/rS9_gyJJZr_qHQ
+Сохранено: C:\Users\Rais\PhpstormProjects\allods\allods_hpi_molodaya_gvardiya.xlsx
+Записей: 1115
+Персонажей: 313
+Yandex Disk URL: https://yadi.sk/d/rS9_gyJJZr_qHQ

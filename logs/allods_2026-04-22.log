@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "C:\Users\Rais\PhpstormProjects\allods\src\allods_hpi_to_xlsx.py", line 1638, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Rais\PhpstormProjects\allods\src\allods_hpi_to_xlsx.py", line 1630, in main
+    workbook.save(output_path)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\openpyxl\workbook\workbook.py", line 386, in save
+    save_workbook(self, filename)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\openpyxl\writer\excel.py", line 291, in save_workbook
+    archive = ZipFile(filename, 'w', ZIP_DEFLATED, allowZip64=True)
+  File "C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\Lib\zipfile\__init__.py", line 1453, in __init__
+    self.fp = io.open(file, filemode)
+              ~~~~~~~^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'allods_hpi_molodaya_gvardiya.xlsx'
