@@ -613,36 +613,70 @@ def format_time_ms(value: int | None) -> str | None:
     return f"{minutes}:{seconds:02d}"
 
 
+def format_duration_ms(value: int | None) -> str:
+    if value is None or value < 0:
+        return "-"
+    total_ms = int(value)
+    minutes = total_ms // 60000
+    seconds = (total_ms % 60000) // 1000
+    return f"{minutes}:{seconds:02d}"
+
+
 def format_time_change(raw_ms: int | None) -> str:
     if raw_ms is None or raw_ms <= 0:
         return "-"
     return format_time_ms(raw_ms) or "-"
 
 
-def format_island_top_time_deltas(records: list[RatingRecord]) -> str:
+def compass_time_sort_key(record: RatingRecord) -> tuple[int, int, int]:
+    return (-(record.compass_level or -1), record.clear_time or 10**12, record.place or 10**9)
+
+
+def island_time_place_text(entity: Entity, record: RatingRecord) -> str:
+    compass = record.compass_level if record.compass_level is not None else "-"
+    time_text = format_time_ms(record.clear_time) or "-"
+    return f"{entity.label}: {compass} - {time_text}"
+
+
+def build_island_top_time_detail_cells(entities: list[Entity], type_name: str) -> list[str]:
     ranked = sorted(
         (
-            record for record in records
-            if record.place is not None and record.clear_time is not None and record.clear_time > 0
+            (entity, record)
+            for entity in entities
+            if (record := entity.by_type.get(type_name)) is not None
+            and record.compass_level is not None
+            and record.clear_time is not None
+            and record.clear_time > 0
         ),
-        key=lambda record: (record.place or 10**9, record.clear_time or 10**12),
+        key=lambda item: compass_time_sort_key(item[1]),
     )
-    places: dict[int, RatingRecord] = {}
-    for record in ranked:
-        if record.place in (1, 2, 3) and record.place not in places:
-            places[record.place] = record
-    parts: list[str] = []
-    for left_place, right_place in ((1, 2), (2, 3)):
-        left = places.get(left_place)
-        right = places.get(right_place)
-        if left is None or right is None or left.clear_time is None or right.clear_time is None:
-            parts.append(f"{left_place}-{right_place}: -")
-            continue
-        left_time = format_time_ms(left.clear_time) or "-"
-        right_time = format_time_ms(right.clear_time) or "-"
-        delta = format_time_ms(abs(right.clear_time - left.clear_time)) or "-"
-        parts.append(f"{left_place}-{right_place}: {left_time} -> {right_time} (+{delta})")
-    return "; ".join(parts)
+    top = ranked[:3]
+
+    def place_cell(index: int) -> str:
+        if index >= len(top):
+            return "-"
+        entity, record = top[index]
+        return island_time_place_text(entity, record)
+
+    def delta_cell(left_index: int, right_index: int) -> str:
+        if right_index >= len(top):
+            return "-"
+        left = top[left_index][1]
+        right = top[right_index][1]
+        if left.clear_time is None or right.clear_time is None:
+            return "-"
+        delta = right.clear_time - left.clear_time
+        if delta < 0:
+            return f"-{format_duration_ms(abs(delta))}"
+        return f"+{format_duration_ms(delta)}"
+
+    return [
+        place_cell(0),
+        place_cell(1),
+        delta_cell(0, 1),
+        place_cell(2),
+        delta_cell(1, 2),
+    ]
 
 
 def metric_value(record: RatingRecord | None, metric: str) -> int | str | None:
@@ -767,7 +801,7 @@ def write_metric_matrix_sheet(
     sheet = create_sheet_safe(workbook, sheet_title)
     headers = ["Р РµР№С‚РёРЅРі/РћСЃС‚СЂРѕРІ"]
     if mode == "compass_time":
-        headers.append("Разница мест")
+        headers.extend(["1 место", "2 место", "Разница 1-2", "3 место", "Разница 2-3"])
     headers.extend(e.label for e in entities)
     sheet.append(headers)
 
@@ -784,7 +818,7 @@ def write_metric_matrix_sheet(
         for _, metric_key in row_specs:
             row_values: list[Any] = [type_name]
             if mode == "compass_time":
-                row_values.append(format_island_top_time_deltas(records_by_type[type_name]))
+                row_values.extend(build_island_top_time_detail_cells(entities, type_name))
             row_records: list[RatingRecord | None] = []
             for entity in entities:
                 rec = entity.by_type.get(type_name)
@@ -792,7 +826,7 @@ def write_metric_matrix_sheet(
                 row_values.append(metric_value(rec, metric_key))
             sheet.append(row_values)
 
-            entity_start_col = 3 if mode == "compass_time" else 2
+            entity_start_col = 7 if mode == "compass_time" else 2
             for col_idx, rec in enumerate(row_records, start=entity_start_col):
                 if metric_key == "achievement":
                     top_value = top_by_type.get(type_name)
@@ -804,12 +838,12 @@ def write_metric_matrix_sheet(
 
     if mode == "compass_time":
         total_row: list[Any] = ["РћР±С‰РµРµ РІСЂРµРјСЏ Р·Р° РІСЃРµ РѕСЃС‚СЂРѕРІР°"]
-        total_row.append("-")
+        total_row.extend(["-", "-", "-", "-", "-"])
         for entity in entities:
             total_row.append(total_time_cell_for_types(entity, visible_types))
         sheet.append(total_row)
 
-    entity_start_col = 3 if mode == "compass_time" else 2
+    entity_start_col = 7 if mode == "compass_time" else 2
     for col_idx, entity in enumerate(entities, start=entity_start_col):
         if entity.overall_place > 24:
             for r in range(1, sheet.max_row + 1):
@@ -824,9 +858,12 @@ def write_metric_matrix_sheet(
         cell.font = Font(name=FONT_NAME, size=FONT_SIZE, bold=True)
 
     if mode == "compass_time":
-        apply_filter_and_freeze(sheet, header_row=1, freeze_cell="C2")
+        apply_filter_and_freeze(sheet, header_row=1, freeze_cell="G2")
         autosize_columns(sheet, min_first=57, min_other=30, max_width=72)
-        sheet.column_dimensions["B"].width = max(sheet.column_dimensions["B"].width or 0, 64)
+        for column_letter in ("B", "C", "E"):
+            sheet.column_dimensions[column_letter].width = max(sheet.column_dimensions[column_letter].width or 0, 44)
+        for column_letter in ("D", "F"):
+            sheet.column_dimensions[column_letter].width = max(sheet.column_dimensions[column_letter].width or 0, 14)
     else:
         apply_filter_and_freeze(sheet, header_row=1, freeze_cell="B2")
         autosize_columns(sheet, min_first=38, min_other=28, max_width=96)
