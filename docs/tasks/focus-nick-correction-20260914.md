@@ -41,11 +41,11 @@
 - Tests and checks: RED inline-проверка — exit 1 с ожидаемым `AssertionError`; GREEN inline-проверка — exit 0; `python -m py_compile src/allods_hpi_to_xlsx.py` — exit 0; контракт README — exit 0; `git diff --check` — exit 0.
 - Diff review: изменены только `src/allods_hpi_to_xlsx.py`, `README.md` и task artifacts; пользовательские XLSX/JSON-файлы не входят в diff.
 - Risks: отсутствуют ожидаемые изменения API, формата XLSX или публикации; остаточный риск ограничен отсутствием сетевого прогона.
-- Commit: ожидается после свежей проверки.
+- Commit: выполнен коммитом `ee5049c`.
 
 ## Verification evidence
 
-- Base revision: `07cf9271` (`master` до начала задачи).
+- Base revision: `07cf9271` (`master` до начала задачи); implementation revision: `ee5049c`.
 - RED contract: inline `python -c` assertion для серверных наборов целей — exit 1, причина: текущий код не имел `focus_characters`.
 - GREEN contract: тот же inline-контракт после правки — exit 0.
 - Syntax: `python -m py_compile src/allods_hpi_to_xlsx.py` — exit 0.
