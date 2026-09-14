@@ -23,7 +23,7 @@ HPI_ENDPOINT = "/hpi/{shard_id}/{type_id}"
 HPI_ASTRAL_ENDPOINT = "/hpi/astral/{type_id}/{shard_id}"
 ARENA_ENDPOINT = "/arena/{shard_id}/0/{class_id}"
 DEFAULT_SHARD_ID = 601
-DEFAULT_SHARD_NAME = "РњРѕР»РѕРґР°СЏ РіРІР°СЂРґРёСЏ"
+DEFAULT_SHARD_NAME = "\u041c\u043e\u043b\u043e\u0434\u0430\u044f \u0413\u0432\u0430\u0440\u0434\u0438\u044f"
 OVERALL_TOP_LIMIT = 50
 ISLAND_TOP_LIMIT = 100
 ARENA_TOP_LIMIT = 100
@@ -168,14 +168,47 @@ class ArenaRecord:
     shard: str
 
 
+@dataclass(frozen=True)
+class ShardConfig:
+    shard_id: int
+    name: str
+    output_name: str
+    state_name: str
+    yadisk_path: str
+
+
+SHARD_CONFIGS: tuple[ShardConfig, ...] = (
+    ShardConfig(
+        shard_id=DEFAULT_SHARD_ID,
+        name=DEFAULT_SHARD_NAME,
+        output_name="allods_hpi_molodaya_gvardiya.xlsx",
+        state_name="allods_state_history.json",
+        yadisk_path="/allods/allods_hpi_molodaya_gvardiya.xlsx",
+    ),
+    ShardConfig(
+        shard_id=101,
+        name="\u041d\u0430\u0441\u043b\u0435\u0434\u0438\u0435 \u0411\u043e\u0433\u043e\u0432",
+        output_name="allods_hpi_nasledie_bogov.xlsx",
+        state_name="allods_state_history_nasledie_bogov.json",
+        yadisk_path="/allods/allods_hpi_nasledie_bogov.xlsx",
+    ),
+)
+
+FOCUS_CHARACTERS: tuple[tuple[str, str], ...] = (
+    ("\u0424\u043e\u043a\u0443\u0441_\u041d\u0443\u043b\u0451\u0432\u044b\u0439", "\u041d\u0443\u043b\u0451\u0432\u044b\u0439"),
+    ("\u0424\u043e\u043a\u0443\u0441_2", ""),
+)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Р­РєСЃРїРѕСЂС‚ СЂРµР№С‚РёРЅРіРѕРІ hpi/hpi-astral РІ XLSX.")
-    parser.add_argument("--output", default="allods_hpi_molodaya_gvardiya.xlsx")
-    parser.add_argument("--shard-id", type=int, default=DEFAULT_SHARD_ID)
+    parser.add_argument("--output", default=None)
+    parser.add_argument("--shard-id", type=int, default=None)
     parser.add_argument("--timeout", type=int, default=30)
-    parser.add_argument("--state-file", default="allods_state_history.json")
+    parser.add_argument("--state-file", default=None)
     parser.add_argument("--yadisk-path", default="")
     parser.add_argument("--yadisk-token-env", default="YADISK_TOKEN")
+    parser.add_argument("--upload-to-yadisk", action="store_true")
     return parser.parse_args()
 
 
@@ -382,6 +415,7 @@ def fetch_source_records(
     type_pairs: list[tuple[int, str]],
     shard_id: int,
     timeout: int,
+    default_shard_name: str,
 ) -> list[RatingRecord]:
     rows: list[RatingRecord] = []
     for type_id, type_name in type_pairs:
@@ -407,7 +441,7 @@ def fetch_source_records(
                     achievement=as_int(item.get("achievement")),
                     compass_level=compass_level_from_difficulty(as_int(item.get("difficulty"))),
                     clear_time=as_int(item.get("time")),
-                    shard=as_str(item.get("shard")) or DEFAULT_SHARD_NAME,
+                    shard=as_str(item.get("shard")) or default_shard_name,
                 )
             )
     return rows
@@ -416,6 +450,7 @@ def fetch_source_records(
 def fetch_arena_records(
     shard_id: int,
     timeout: int,
+    default_shard_name: str,
 ) -> tuple[list[ArenaRecord], dict[int, list[ArenaRecord]]]:
     by_class_id = dict(ARENA_CLASSES)
     overall_rows: list[ArenaRecord] = []
@@ -441,7 +476,7 @@ def fetch_arena_records(
                 class_name=class_name,
                 guild=as_str(item.get("guild")),
                 achievement=as_int(item.get("achievement")),
-                shard=as_str(item.get("shard")) or DEFAULT_SHARD_NAME,
+                shard=as_str(item.get("shard")) or default_shard_name,
             )
             rows_for_class.append(record)
 
@@ -2059,29 +2094,36 @@ def build_source_sheets(
     return groups
 
 
-def main() -> None:
-    args = parse_args()
-    output_path = Path(args.output)
-    state_path = Path(args.state_file)
+def generate_report(
+    config: ShardConfig,
+    output_path: Path,
+    state_path: Path,
+    timeout: int,
+    yadisk_path: str,
+    yadisk_token_env: str,
+) -> None:
 
     try:
         hpi_rows = fetch_source_records(
             source="hpi",
             endpoint_template=HPI_ENDPOINT,
             type_pairs=HPI_TYPES,
-            shard_id=args.shard_id,
-            timeout=args.timeout,
+            shard_id=config.shard_id,
+            timeout=timeout,
+            default_shard_name=config.name,
         )
         astral_rows = fetch_source_records(
             source="hpi-astral",
             endpoint_template=HPI_ASTRAL_ENDPOINT,
             type_pairs=HPI_ASTRAL_TYPES,
-            shard_id=args.shard_id,
-            timeout=args.timeout,
+            shard_id=config.shard_id,
+            timeout=timeout,
+            default_shard_name=config.name,
         )
         arena_top_rows, arena_rows_by_class = fetch_arena_records(
-            shard_id=args.shard_id,
-            timeout=args.timeout,
+            shard_id=config.shard_id,
+            timeout=timeout,
+            default_shard_name=config.name,
         )
     except HTTPError as exc:
         raise cli_exit(f"РћС€РёР±РєР° HTTP: {exc.code} {exc.reason}") from exc
@@ -2111,24 +2153,16 @@ def main() -> None:
         rows=astral_rows,
         ordered_types=[name for _, name in HPI_ASTRAL_TYPES],
     )
-    write_focus_sheet(
-        workbook=workbook,
-        sheet_title="Фокус_Ройс",
-        character="Ройс",
-        hpi_rows=hpi_rows,
-        hpi_types=[name for _, name in HPI_TYPES],
-        astral_rows=astral_rows,
-        astral_types=[name for _, name in HPI_ASTRAL_TYPES],
-    )
-    write_focus_sheet(
-        workbook=workbook,
-        sheet_title="Фокус_Мгла",
-        character="Мгла",
-        hpi_rows=hpi_rows,
-        hpi_types=[name for _, name in HPI_TYPES],
-        astral_rows=astral_rows,
-        astral_types=[name for _, name in HPI_ASTRAL_TYPES],
-    )
+    for sheet_title, character in FOCUS_CHARACTERS:
+        write_focus_sheet(
+            workbook=workbook,
+            sheet_title=sheet_title,
+            character=character,
+            hpi_rows=hpi_rows,
+            hpi_types=[name for _, name in HPI_TYPES],
+            astral_rows=astral_rows,
+            astral_types=[name for _, name in HPI_ASTRAL_TYPES],
+        )
 
     write_arena_top100_class_stats_sheet(
         workbook=workbook,
@@ -2171,10 +2205,10 @@ def main() -> None:
 
     write_legend_sheet(workbook)
 
-    shard_name = next((row.shard for row in all_rows if row.shard), DEFAULT_SHARD_NAME)
+    shard_name = next((row.shard for row in all_rows if row.shard), config.name)
     write_meta_sheet(
         workbook=workbook,
-        shard_id=args.shard_id,
+        shard_id=config.shard_id,
         shard_name=shard_name,
         total_rows=len(all_rows),
         total_chars=len({r.character for r in all_rows if r.character}),
@@ -2202,18 +2236,18 @@ def main() -> None:
     fix_workbook_text(workbook)
     workbook.save(output_path)
     yandex_public_url: str | None = None
-    if args.yadisk_path:
-        token = os.environ.get(args.yadisk_token_env, "").strip()
+    if yadisk_path:
+        token = os.environ.get(yadisk_token_env, "").strip()
         if not token:
             raise cli_exit(
-                f"Не задан OAuth-токен Яндекс Диска. Укажите переменную окружения {args.yadisk_token_env}."
+                f"Не задан OAuth-токен Яндекс Диска. Укажите переменную окружения {yadisk_token_env}."
             )
         try:
             yandex_public_url = upload_file_to_yandex_disk(
                 local_path=output_path,
-                remote_file_path=args.yadisk_path,
+                remote_file_path=yadisk_path,
                 token=token,
-                timeout=args.timeout,
+                timeout=timeout,
             )
         except HTTPError as exc:
             raise cli_exit(f"Ошибка Яндекс Диска: {exc.code} {exc.reason}") from exc
@@ -2225,6 +2259,36 @@ def main() -> None:
     cli_print(f"РџРµСЂСЃРѕРЅР°Р¶РµР№: {len({r.character for r in all_rows if r.character})}")
     if yandex_public_url:
         cli_print(f"Yandex Disk URL: {yandex_public_url}")
+
+
+def main() -> None:
+    args = parse_args()
+    if args.shard_id is None:
+        configs = SHARD_CONFIGS
+        if args.output or args.state_file or args.yadisk_path:
+            raise cli_exit(
+                "\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b --output, --state-file \u0438 --yadisk-path \u043c\u043e\u0436\u043d\u043e \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0441 --shard-id."
+            )
+    else:
+        config = next((item for item in SHARD_CONFIGS if item.shard_id == args.shard_id), None)
+        if config is None:
+            raise cli_exit(f"\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 ID \u0441\u0435\u0440\u0432\u0435\u0440\u0430: {args.shard_id}.")
+        configs = (config,)
+
+    for config in configs:
+        output_path = Path(args.output) if args.output else Path(config.output_name)
+        state_path = Path(args.state_file) if args.state_file else Path(config.state_name)
+        yadisk_path = args.yadisk_path
+        if args.upload_to_yadisk and not yadisk_path:
+            yadisk_path = config.yadisk_path
+        generate_report(
+            config=config,
+            output_path=output_path,
+            state_path=state_path,
+            timeout=args.timeout,
+            yadisk_path=yadisk_path,
+            yadisk_token_env=args.yadisk_token_env,
+        )
 
 
 if __name__ == "__main__":
