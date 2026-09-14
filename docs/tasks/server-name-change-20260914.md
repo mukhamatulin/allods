@@ -50,4 +50,4 @@
 - Tests and checks: `python -m py_compile src/allods_hpi_to_xlsx.py` — exit 0; проверка README и `run_daily.bat` — exit 0; API HPI, HPI Astral и Arena для shard `101` — exit 0; `git diff --check` — exit 0.
 - Diff review: изменены только описание двух отчётов в `README.md` и флаг публикации в `run_daily.bat`; временный XLSX пользователя не включён.
 - Risks: публикация требует настроенной переменной `YADISK_TOKEN`.
-- Commit: будет выполнен отдельным коммитом CP2 после финальной проверки.
+- Commit: выполнен коммитом `cd5af79`.
