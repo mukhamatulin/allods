@@ -12,7 +12,7 @@ set MM=%date:~3,2%
 set DD=%date:~0,2%
 
 if defined YADISK_TOKEN (
-  %PY% %SCRIPT% --yadisk-path /allods/allods_hpi_molodaya_gvardiya.xlsx >> logs\allods_%YYYY%-%MM%-%DD%.log 2>&1
+  %PY% %SCRIPT% --upload-to-yadisk >> logs\allods_%YYYY%-%MM%-%DD%.log 2>&1
 ) else (
   %PY% %SCRIPT% >> logs\allods_%YYYY%-%MM%-%DD%.log 2>&1
 )
