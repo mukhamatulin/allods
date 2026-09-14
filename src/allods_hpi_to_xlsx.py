@@ -175,6 +175,7 @@ class ShardConfig:
     output_name: str
     state_name: str
     yadisk_path: str
+    focus_characters: tuple[tuple[str, str], ...]
 
 
 SHARD_CONFIGS: tuple[ShardConfig, ...] = (
@@ -184,6 +185,10 @@ SHARD_CONFIGS: tuple[ShardConfig, ...] = (
         output_name="allods_hpi_molodaya_gvardiya.xlsx",
         state_name="allods_state_history.json",
         yadisk_path="/allods/allods_hpi_molodaya_gvardiya.xlsx",
+        focus_characters=(
+            ("\u0424\u043e\u043a\u0443\u0441_\u0420\u043e\u0439\u0441", "\u0420\u043e\u0439\u0441"),
+            ("\u0424\u043e\u043a\u0443\u0441_\u041c\u0433\u043b\u0430", "\u041c\u0433\u043b\u0430"),
+        ),
     ),
     ShardConfig(
         shard_id=101,
@@ -191,12 +196,11 @@ SHARD_CONFIGS: tuple[ShardConfig, ...] = (
         output_name="allods_hpi_nasledie_bogov.xlsx",
         state_name="allods_state_history_nasledie_bogov.json",
         yadisk_path="/allods/allods_hpi_nasledie_bogov.xlsx",
+        focus_characters=(
+            ("\u0424\u043e\u043a\u0443\u0441_\u041d\u0443\u043b\u0451\u0432\u044b\u0439", "\u041d\u0443\u043b\u0451\u0432\u044b\u0439"),
+            ("\u0424\u043e\u043a\u0443\u0441_2", ""),
+        ),
     ),
-)
-
-FOCUS_CHARACTERS: tuple[tuple[str, str], ...] = (
-    ("\u0424\u043e\u043a\u0443\u0441_\u041d\u0443\u043b\u0451\u0432\u044b\u0439", "\u041d\u0443\u043b\u0451\u0432\u044b\u0439"),
-    ("\u0424\u043e\u043a\u0443\u0441_2", ""),
 )
 
 
@@ -2153,7 +2157,7 @@ def generate_report(
         rows=astral_rows,
         ordered_types=[name for _, name in HPI_ASTRAL_TYPES],
     )
-    for sheet_title, character in FOCUS_CHARACTERS:
+    for sheet_title, character in config.focus_characters:
         write_focus_sheet(
             workbook=workbook,
             sheet_title=sheet_title,
