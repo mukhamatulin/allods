@@ -40,14 +40,14 @@
 - Tests and checks: `python -m py_compile src/allods_hpi_to_xlsx.py` — exit 0; изолированный прогон с подменёнными API-ответами — exit 0; проверка выбора двух конфигураций CLI — exit 0; `git diff --check` — exit 0.
 - Diff review: изменены только конфигурация серверов, выбор целей и общий генератор отчёта в `src/allods_hpi_to_xlsx.py`.
 - Risks: два последовательных обращения к API увеличивают время запуска; сетевые ошибки обрабатываются для каждого отчёта общим существующим механизмом.
-- Commit: будет выполнен после проверки индексируемого diff.
+- Commit: выполнен коммитом `c3c7868`.
 
 ### CP2: Автоматический запуск и документация
 
 - Scope: `run_daily.bat`, `README.md` и task artifacts.
 - Acceptance criteria: критерии 5–6.
 - FT / legacy 1.0 mapping: ежедневная генерация и публикация обоих отчётов.
-- Tests and checks: будут записаны после правки.
-- Diff review: будет выполнен перед коммитом.
+- Tests and checks: `python -m py_compile src/allods_hpi_to_xlsx.py` — exit 0; проверка README и `run_daily.bat` — exit 0; API HPI, HPI Astral и Arena для shard `101` — exit 0; `git diff --check` — exit 0.
+- Diff review: изменены только описание двух отчётов в `README.md` и флаг публикации в `run_daily.bat`; временный XLSX пользователя не включён.
 - Risks: публикация требует настроенной переменной `YADISK_TOKEN`.
-- Commit: ожидается.
+- Commit: будет выполнен отдельным коммитом CP2 после финальной проверки.

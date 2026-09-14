@@ -22,22 +22,26 @@ Default:
 python .\src\allods_hpi_to_xlsx.py
 ```
 
+The default run creates two files: `allods_hpi_molodaya_gvardiya.xlsx` for shard `601` and `allods_hpi_nasledie_bogov.xlsx` for shard `101`.
+
 Useful args:
-- `--output .\my_report.xlsx`
-- `--shard-id 601`
-- `--timeout 30`[run_daily.bat](run_daily.bat)
-- `--state-file .\allods_state_history.json`
-- `--yadisk-path /allods/allods_hpi_molodaya_gvardiya.xlsx`
+- `--shard-id 601` or `--shard-id 101` to generate one server report
+- `--output .\my_report.xlsx` with `--shard-id`
+- `--timeout 30`
+- [run_daily.bat](run_daily.bat)
+- `--state-file .\allods_state_history.json` with `--shard-id`
+- `--upload-to-yadisk` to publish both configured reports
+- `--yadisk-path /allods/custom.xlsx` with `--shard-id` for a custom remote path
 - `--yadisk-token-env YADISK_TOKEN`
 
 ## Yandex Disk
 
-To upload the generated XLSX to a stable Yandex Disk path and keep one public link:
+To upload both generated XLSX files to their stable Yandex Disk paths:
 
 ```powershell
 $env:YADISK_TOKEN='your_oauth_token'
 python .\src\allods_hpi_to_xlsx.py `
-  --yadisk-path /allods/allods_hpi_molodaya_gvardiya.xlsx
+  --upload-to-yadisk
 ```
 
 Persist the token for your Windows user profile:
@@ -47,6 +51,6 @@ Persist the token for your Windows user profile:
 ```
 
 Script behavior:
-- uploads the file to the same Disk path with overwrite
-- publishes the file if needed
-- prints the public URL after upload
+- uploads each file to its configured Disk path with overwrite
+- publishes each file if needed
+- prints each public URL after upload
