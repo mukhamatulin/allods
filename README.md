@@ -24,6 +24,8 @@ python .\src\allods_hpi_to_xlsx.py
 
 The default run creates two files: `allods_hpi_molodaya_gvardiya.xlsx` for shard `601` and `allods_hpi_nasledie_bogov.xlsx` for shard `101`.
 
+Focus sheets use `Мгла` and `Ройс` for shard `601`, and `Нулёвый` for shard `101`.
+
 Useful args:
 - `--shard-id 601` or `--shard-id 101` to generate one server report
 - `--output .\my_report.xlsx` with `--shard-id`
