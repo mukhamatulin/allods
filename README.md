@@ -14,6 +14,19 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Microsoft Edge must be installed. Ratings are read through an isolated, headless
+Edge session using Playwright, so the site's JavaScript security check can run.
+No personal browser profile or saved cookies are used. One session is shared by
+all ratings requests during each export and is closed when the export ends.
+
+`run_daily.bat` uses the Python executable configured in its `PY` variable. Install
+the dependencies with that interpreter too (installing them in `.venv` alone does
+not configure the scheduled task):
+
+```powershell
+& 'C:\Users\Rais\AppData\Local\Python\pythoncore-3.14-64\python.exe' -m pip install -r requirements.txt
+```
+
 ## Run
 
 Default:
@@ -36,7 +49,25 @@ Useful args:
 - `--yadisk-path /allods/custom.xlsx` with `--shard-id` for a custom remote path
 - `--yadisk-token-env YADISK_TOKEN`
 
-## Yandex Disk
+## Browser security check
+
+Only the official `allods.ru` API is used. A direct HTTP request can return
+`403 Forbidden` with a JavaScript security check instead of ratings JSON. The
+export opens API pages in Edge and waits for the site's script to finish normally.
+`--timeout` limits the total wait for each API page, including its security check.
+If the site requires manual CAPTCHA input, an unattended export cannot complete;
+the script exits with an error instead of saving the check page as ratings.
+
+The daily launcher accepts the same arguments as the Python script and returns
+its exit code. Its log is written under `logs` beside the launcher. Example:
+
+```powershell
+.\run_daily.bat --shard-id 601 --output .\test_report.xlsx --state-file .\test_state.json
+```
+
+When `YADISK_TOKEN` is set, the daily launcher also uploads the generated reports.
+
+## Yandex Disk upload
 
 To upload both generated XLSX files to their stable Yandex Disk paths:
 
