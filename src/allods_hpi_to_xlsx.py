@@ -12,6 +12,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from browser_ratings import BrowserRatingsClient
+
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -216,24 +218,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def fetch_json(url: str, timeout: int) -> Any:
-    req = Request(
-        url,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            )
-        },
-    )
-    with urlopen(req, timeout=timeout) as response:
-        if response.status != 200:
-            raise RuntimeError(f"HTTP {response.status}: {url}")
-        body = response.read()
-    return json.loads(body.decode("utf-8"))
-
-
 def request_json(
     url: str,
     timeout: int,
@@ -420,12 +404,13 @@ def fetch_source_records(
     shard_id: int,
     timeout: int,
     default_shard_name: str,
+    ratings_client: BrowserRatingsClient,
 ) -> list[RatingRecord]:
     rows: list[RatingRecord] = []
     for type_id, type_name in type_pairs:
         type_limit = top_limit_for_type_id(type_id)
         url = API_BASE + endpoint_template.format(shard_id=shard_id, type_id=type_id)
-        payload = fetch_json(url, timeout)
+        payload = ratings_client.fetch_json(url, timeout)
         if not isinstance(payload, list):
             raise RuntimeError(f"РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ С„РѕСЂРјР°С‚ РѕС‚РІРµС‚Р°: {url}")
 
@@ -455,6 +440,7 @@ def fetch_arena_records(
     shard_id: int,
     timeout: int,
     default_shard_name: str,
+    ratings_client: BrowserRatingsClient,
 ) -> tuple[list[ArenaRecord], dict[int, list[ArenaRecord]]]:
     by_class_id = dict(ARENA_CLASSES)
     overall_rows: list[ArenaRecord] = []
@@ -462,7 +448,7 @@ def fetch_arena_records(
 
     for class_id, class_title in ARENA_CLASSES:
         url = API_BASE + ARENA_ENDPOINT.format(shard_id=shard_id, class_id=class_id)
-        payload = fetch_json(url, timeout)
+        payload = ratings_client.fetch_json(url, timeout)
         if not isinstance(payload, list):
             raise RuntimeError(f"Р СњР ВµР С”Р С•РЎР‚РЎР‚Р ВµР С”РЎвЂљР Р…РЎвЂ№Р в„– РЎвЂћР С•РЎР‚Р СР В°РЎвЂљ Р С•РЎвЂљР Р†Р ВµРЎвЂљР В°: {url}")
 
@@ -2105,6 +2091,7 @@ def generate_report(
     timeout: int,
     yadisk_path: str,
     yadisk_token_env: str,
+    ratings_client: BrowserRatingsClient,
 ) -> None:
 
     try:
@@ -2115,6 +2102,7 @@ def generate_report(
             shard_id=config.shard_id,
             timeout=timeout,
             default_shard_name=config.name,
+            ratings_client=ratings_client,
         )
         astral_rows = fetch_source_records(
             source="hpi-astral",
@@ -2123,11 +2111,13 @@ def generate_report(
             shard_id=config.shard_id,
             timeout=timeout,
             default_shard_name=config.name,
+            ratings_client=ratings_client,
         )
         arena_top_rows, arena_rows_by_class = fetch_arena_records(
             shard_id=config.shard_id,
             timeout=timeout,
             default_shard_name=config.name,
+            ratings_client=ratings_client,
         )
     except HTTPError as exc:
         raise cli_exit(f"РћС€РёР±РєР° HTTP: {exc.code} {exc.reason}") from exc
@@ -2279,25 +2269,29 @@ def main() -> None:
             raise cli_exit(f"\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 ID \u0441\u0435\u0440\u0432\u0435\u0440\u0430: {args.shard_id}.")
         configs = (config,)
 
-    for config in configs:
-        output_path = Path(args.output) if args.output else Path(config.output_name)
-        state_path = Path(args.state_file) if args.state_file else Path(config.state_name)
-        yadisk_path = args.yadisk_path
-        if args.upload_to_yadisk and not yadisk_path:
-            yadisk_path = config.yadisk_path
-        generate_report(
-            config=config,
-            output_path=output_path,
-            state_path=state_path,
-            timeout=args.timeout,
-            yadisk_path=yadisk_path,
-            yadisk_token_env=args.yadisk_token_env,
-        )
+    with BrowserRatingsClient() as ratings_client:
+        for config in configs:
+            output_path = Path(args.output) if args.output else Path(config.output_name)
+            state_path = Path(args.state_file) if args.state_file else Path(config.state_name)
+            yadisk_path = args.yadisk_path
+            if args.upload_to_yadisk and not yadisk_path:
+                yadisk_path = config.yadisk_path
+            generate_report(
+                config=config,
+                output_path=output_path,
+                state_path=state_path,
+                timeout=args.timeout,
+                yadisk_path=yadisk_path,
+                yadisk_token_env=args.yadisk_token_env,
+                ratings_client=ratings_client,
+            )
 
 
 if __name__ == "__main__":
     try:
         main()
+    except RuntimeError as exc:
+        raise cli_exit(str(exc)) from exc
     except KeyboardInterrupt:
         sys.exit(human_text("РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј."))
 
